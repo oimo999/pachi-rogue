@@ -1,0 +1,1715 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="PACHI ROGUE"/>
+<meta name="theme-color" content="#0a0d12"/>
+<title>PACHI ROGUE v3</title>
+<style>
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%;background:#0a0d12;color:#fff;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;overflow:hidden}
+  #wrap{height:100%;display:flex;flex-direction:column;position:relative}
+  #top{display:grid;grid-template-columns:repeat(12,1fr);gap:5px;padding:7px;background:#131722}
+  .stat{background:#202637;border-radius:9px;padding:6px 4px;text-align:center;font-size:10px;min-width:0}
+  .stat b{display:block;font-size:16px;margin-top:2px;white-space:nowrap;overflow:hidden}
+  #game{flex:1;width:100%;height:100%;display:block;touch-action:none}
+  #controls{background:#131722;padding:7px;display:grid;grid-template-columns:1fr 1fr 1.15fr 1.15fr;gap:7px}
+  button{border:0;border-radius:11px;padding:12px 8px;font-weight:900;font-size:13px}
+  #fire{background:#ff3b30;color:#fff}
+  #auto{background:#ffcc00;color:#111}
+  #weak{background:#4aa3ff;color:white}
+  #strong{background:#af52de;color:white}
+  button:disabled{opacity:.25}
+  .ctrl{font-size:10px;background:#202637;border-radius:10px;padding:7px}
+  .ctrl label{display:flex;justify-content:space-between;margin-bottom:4px}
+  .ctrl input{width:100%}
+  #rightPanel{display:none;grid-column:1/-1;grid-template-columns:1fr 1fr 1.4fr;gap:7px;align-items:center}
+  #techPanel{grid-column:1/-1;display:grid;grid-template-columns:repeat(4,1fr);gap:7px}
+  #techPanel button{background:#2b3347;color:#fff}
+  #techPanel button.on{background:#34c759;color:#07130b}
+  #rightInfo{background:#281f35;border:1px solid #af52de;border-radius:10px;padding:7px;text-align:center;font-size:11px}
+  #rightInfo b{font-size:15px}
+  #tip{grid-column:1/-1;font-size:10px;opacity:.74;text-align:center;min-height:12px}
+  #bookBtn{grid-column:1/-1;background:#334155;color:#fff}
+  #lcdWrap{position:absolute;left:50%;top:18%;transform:translateX(-50%);width:min(72vw,520px);height:210px;pointer-events:none;z-index:4}
+  #lcd{width:100%;height:100%;border-radius:18px;background:linear-gradient(180deg,#111827,#0b1220);border:3px solid #39445e;box-shadow:0 0 26px rgba(0,0,0,.55) inset,0 8px 30px rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;gap:14px;overflow:hidden;position:relative}
+  .digit{font-size:92px;font-weight:1000;line-height:1;color:#f8fafc;text-shadow:0 4px 10px #000;min-width:72px;text-align:center}
+  .digit.spin{animation:digitPulse .18s linear infinite}
+  @keyframes digitPulse{0%{transform:translateY(-4px);opacity:.7}50%{transform:translateY(4px);opacity:1}100%{transform:translateY(-4px);opacity:.7}}
+  #lcdText{position:absolute;bottom:12px;left:0;right:0;text-align:center;font-weight:900;font-size:17px;letter-spacing:.06em}
+  #roleObj{position:absolute;left:50%;top:-120px;transform:translateX(-50%);width:190px;height:72px;border-radius:0 0 24px 24px;background:linear-gradient(180deg,#eab308,#f59e0b);box-shadow:0 0 24px rgba(245,158,11,.75);display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:1000;color:#231600;transition:top .28s cubic-bezier(.2,.9,.25,1.2);z-index:6}
+  #roleObj.drop{top:0}
+  #flashLayer{position:fixed;inset:0;pointer-events:none;z-index:7;opacity:0;background:rgba(255,0,0,.26);transition:opacity .08s}
+  #flashLayer.on{opacity:1}
+  #bookPanel{max-height:70vh;overflow:auto}
+  .bookRow{background:#202637;border-radius:10px;padding:9px;margin:7px 0;font-size:12px}
+  .bookRow.locked{opacity:.42}
+  .bookRow b{display:block;margin-bottom:3px}
+  .tag{display:inline-block;padding:2px 6px;border-radius:999px;background:#2f3b52;font-size:10px;margin-right:4px}
+  #overlay{position:fixed;inset:0;background:rgba(0,0,0,.86);display:none;align-items:center;justify-content:center;padding:18px;z-index:10}
+  #panel{width:min(650px,100%);background:#171c28;border-radius:18px;padding:18px}
+  #panel h2{margin:0 0 8px}
+  #choices{display:grid;gap:10px;margin-top:14px}
+  .choice{background:#252d40;color:#fff;text-align:left;padding:14px}
+  .choice strong{display:block;font-size:16px;margin-bottom:5px}
+  .choice span{opacity:.8;font-size:13px}
+  #msg{position:fixed;top:82px;left:50%;transform:translateX(-50%);font-weight:950;font-size:26px;text-shadow:0 2px 9px #000;pointer-events:none;opacity:0;transition:.15s;z-index:8;white-space:nowrap}
+  @media(max-width:700px){
+    #top{grid-template-columns:repeat(4,1fr)}
+    .stat:nth-child(n+5){font-size:9px}
+    .stat b{font-size:14px}
+  }
+
+  :root{
+    --safe-top: env(safe-area-inset-top, 0px);
+    --safe-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  html,body{
+    overscroll-behavior:none;
+    -webkit-user-select:none;
+    user-select:none;
+    -webkit-touch-callout:none;
+  }
+  body{
+    padding-top:var(--safe-top);
+    padding-bottom:var(--safe-bottom);
+  }
+  #wrap{
+    min-height:100dvh;
+    height:100dvh;
+    overflow:hidden;
+  }
+  #top{
+    flex:0 0 auto;
+    display:grid;
+    grid-template-columns:repeat(4,1fr)!important;
+    gap:4px!important;
+    padding:5px 6px!important;
+    background:rgba(19,23,34,.97)!important;
+    z-index:20;
+  }
+  .stat{
+    padding:5px 3px!important;
+    font-size:9px!important;
+    border-radius:8px!important;
+  }
+  .stat b{font-size:13px!important;margin-top:1px!important}
+  #lcdWrap{
+    position:absolute!important;
+    top:104px!important;
+    left:50%!important;
+    width:calc(100vw - 24px)!important;
+    max-width:430px!important;
+    height:155px!important;
+    transform:translateX(-50%)!important;
+    z-index:8!important;
+  }
+  #lcd{
+    border-radius:15px!important;
+    gap:8px!important;
+    border-width:2px!important;
+  }
+  .digit{
+    font-size:68px!important;
+    min-width:54px!important;
+  }
+  #lcdText{
+    bottom:8px!important;
+    font-size:14px!important;
+  }
+  #roleObj{
+    width:150px!important;
+    height:55px!important;
+    font-size:18px!important;
+  }
+  #game{
+    position:absolute;
+    left:0;
+    right:0;
+    top:250px;
+    bottom:238px;
+    width:100%!important;
+    height:auto!important;
+    z-index:1;
+  }
+  #controls{
+    position:absolute!important;
+    left:0;right:0;bottom:0;
+    height:238px;
+    padding:7px 8px calc(8px + var(--safe-bottom))!important;
+    display:grid!important;
+    grid-template-columns:1fr 1fr 1fr!important;
+    grid-template-rows:42px 46px 1fr!important;
+    gap:6px!important;
+    background:linear-gradient(180deg,rgba(19,23,34,.98),rgba(8,10,15,.995))!important;
+    z-index:25;
+    box-shadow:0 -6px 24px rgba(0,0,0,.5);
+  }
+  #fire,#auto{display:none!important}
+  .ctrl{
+    min-width:0;
+    padding:5px!important;
+    font-size:9px!important;
+    grid-row:1;
+  }
+  .ctrl:nth-of-type(1){grid-column:1/2}
+  .ctrl:nth-of-type(2){grid-column:2/3}
+  #rightPanel{
+    grid-column:1/-1!important;
+    grid-row:2!important;
+    grid-template-columns:1fr 1fr 1.1fr!important;
+    gap:6px!important;
+    align-items:stretch!important;
+  }
+  #rightPanel button{
+    padding:7px 5px!important;
+    font-size:12px!important;
+  }
+  #rightInfo{padding:4px!important;font-size:9px!important}
+  #rightInfo b{font-size:12px!important}
+  #techPanel,#bookBtn,#tip{display:none!important}
+
+  #iphoneDock{
+    display:grid!important;
+    grid-column:1/-1;
+    grid-row:3;
+    grid-template-columns:126px 1fr;
+    gap:8px;
+    min-height:0;
+  }
+  #handleZone{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    min-width:0;
+  }
+  #handle{
+    width:112px;
+    height:112px;
+    border-radius:50%;
+    position:relative;
+    background:
+      radial-gradient(circle at 50% 50%,#2b3347 0 24%,#111827 25% 49%,#3a4358 50% 58%,#0b0f17 59% 100%);
+    border:3px solid #59647b;
+    box-shadow:inset 0 0 18px rgba(255,255,255,.08),0 5px 18px rgba(0,0,0,.55);
+    touch-action:none;
+  }
+  #handleKnob{
+    position:absolute;
+    width:16px;height:34px;
+    border-radius:999px;
+    left:50%;top:8px;
+    transform:translateX(-50%);
+    transform-origin:8px 48px;
+    background:linear-gradient(#f8fafc,#aab3c6);
+    box-shadow:0 2px 5px rgba(0,0,0,.5);
+  }
+  #handleCenter{
+    position:absolute;
+    inset:34px;
+    border-radius:50%;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    text-align:center;
+    font-size:10px;
+    font-weight:900;
+    color:#dbeafe;
+    background:#121826;
+    border:1px solid #45516a;
+  }
+  #mobileActions{
+    min-width:0;
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    grid-template-rows:1fr 1fr 1fr;
+    gap:6px;
+  }
+  .mBtn{
+    border:0;border-radius:11px;
+    font-weight:900;
+    font-size:12px;
+    padding:6px;
+    color:#fff;
+    background:#293246;
+  }
+  #mStop{background:#ef4444}
+  #mWeak{background:#3b82f6}
+  #mStrong{background:#a855f7}
+  #mTech{background:#22c55e;color:#07110a}
+  #mBook{background:#475569}
+  #mAuto{background:#facc15;color:#17120a}
+  #powerBar{
+    position:absolute;
+    right:14px;
+    top:268px;
+    width:12px;
+    bottom:250px;
+    border-radius:999px;
+    background:#111827;
+    border:1px solid #475569;
+    overflow:hidden;
+    z-index:7;
+  }
+  #powerFill{
+    position:absolute;
+    left:0;right:0;bottom:0;
+    height:50%;
+    background:linear-gradient(180deg,#ef4444,#facc15,#22c55e);
+  }
+  #powerLabel{
+    position:absolute;
+    right:29px;
+    top:268px;
+    font-size:9px;
+    z-index:7;
+    opacity:.75;
+    writing-mode:vertical-rl;
+  }
+  #mobileHint{
+    position:absolute;
+    left:8px;
+    bottom:244px;
+    z-index:8;
+    font-size:9px;
+    opacity:.72;
+    background:rgba(8,10,15,.72);
+    padding:4px 6px;
+    border-radius:7px;
+    pointer-events:none;
+  }
+  #msg{
+    top:calc(var(--safe-top) + 270px)!important;
+    font-size:20px!important;
+    max-width:92vw;
+    text-align:center;
+  }
+  @media (min-width:700px){
+    #wrap{max-width:520px;margin:0 auto;position:relative;box-shadow:0 0 60px rgba(0,0,0,.45)}
+    body{background:#02040a}
+  }
+  @media (orientation:landscape){
+    #orientationWarning{display:flex!important}
+  }
+  #orientationWarning{
+    display:none;
+    position:fixed;
+    inset:0;
+    z-index:999;
+    background:#080b11;
+    align-items:center;
+    justify-content:center;
+    text-align:center;
+    padding:30px;
+    font-weight:900;
+    font-size:18px;
+  }
+
+</style>
+</head>
+<body>
+<div id="wrap">
+  <div id="top">
+    <div class="stat">STAGE<b id="stage">1</b></div>
+    <div class="stat">敵HP<b id="hp">120</b></div>
+    <div class="stat">残り玉<b id="balls">40</b></div>
+    <div class="stat">コイン<b id="coins">0</b></div>
+    <div class="stat">回転数<b id="spins">0</b></div>
+    <div class="stat">1k回転<b id="rpm">0.0</b></div>
+    <div class="stat">OVER<b id="overs">0</b></div>
+    <div class="stat">保留<b id="holds">0/4</b></div>
+    <div class="stat">演出<b id="effect">通常</b></div>
+    <div class="stat">RUSH<b id="rushes">0</b></div>
+    <div class="stat">法則崩れ<b id="lawbreaks">0</b></div>
+    <div class="stat">LT<b id="lts">0</b></div>
+  </div>
+
+  <div id="lcdWrap">
+    <div id="roleObj">激震役物</div>
+    <div id="lcd">
+      <div class="digit" id="d1">1</div>
+      <div class="digit" id="d2">2</div>
+      <div class="digit" id="d3">3</div>
+      <div id="lcdText">通常変動</div>
+    </div>
+  </div>
+
+  <canvas id="game"></canvas>
+
+  <div id="controls">
+    <button id="fire">通常打ち</button>
+    <button id="auto">AUTO OFF</button>
+
+    <div class="ctrl">
+      <label><span>釘調整</span><b id="nailVal">0</b></label>
+      <input id="nail" type="range" min="-3" max="3" step="1" value="0">
+    </div>
+
+    <div class="ctrl">
+      <label><span>捻り</span><b id="twistVal">0%</b></label>
+      <input id="twist" type="range" min="0" max="100" step="5" value="0">
+    </div>
+
+    <div id="rightPanel">
+      <button id="weak">右・弱打ち</button>
+      <button id="strong">右・強打ち</button>
+      <div id="rightInfo"><span id="modeLabel">RIGHT TIME</span><br><b><span id="count">0</span>/10</b>　残り <b><span id="rt">0.0</span>s</b></div>
+    </div>
+
+    <div id="techPanel">
+      <button id="stopBtn">止め打ち OFF</button>
+      <button id="holdStopBtn">保留4止め OFF</button>
+      <button id="oneTwoBtn">ワンツー OFF</button>
+      <button id="roundStopBtn">ラウンド間止め OFF</button>
+    </div>
+
+    <button id="bookBtn">演出法則図鑑</button>
+
+    <div id="iphoneDock">
+      <div id="handleZone">
+        <div id="handle" aria-label="発射ハンドル">
+          <div id="handleKnob"></div>
+          <div id="handleCenter">発射<br><span id="handlePct">50%</span></div>
+        </div>
+      </div>
+      <div id="mobileActions">
+        <button class="mBtn" id="mStop">発射停止</button>
+        <button class="mBtn" id="mAuto">AUTO</button>
+        <button class="mBtn" id="mWeak">右・弱</button>
+        <button class="mBtn" id="mStrong">右・強</button>
+        <button class="mBtn" id="mTech">技術介入 ON</button>
+        <button class="mBtn" id="mBook">図鑑</button>
+      </div>
+    </div>
+
+    <div id="tip">LTタイプ：通常RUSHから内部昇格、10RからLT直行あり。LT中は専用プレミア演出、さらに超低確率で上位LTへ。</div>
+  </div>
+</div>
+
+<div id="powerLabel">発射強度</div>
+<div id="powerBar"><div id="powerFill"></div></div>
+<div id="mobileHint">ハンドルを回すほど強く発射</div>
+<div id="orientationWarning">縦画面で遊ぶように設計しています。<br>iPhoneを縦向きにしてください。</div>
+<div id="flashLayer"></div>
+<div id="msg"></div>
+<div id="bookOverlay" style="position:fixed;inset:0;background:rgba(0,0,0,.88);display:none;align-items:center;justify-content:center;padding:18px;z-index:11">
+  <div id="panel">
+    <h2>演出法則図鑑</h2>
+    <div id="bookPanel"></div>
+    <button id="bookClose" style="width:100%;margin-top:12px;background:#ff453a;color:white">閉じる</button>
+  </div>
+</div>
+
+<div id="overlay">
+  <div id="panel">
+    <h2 id="panelTitle"></h2>
+    <div id="panelText"></div>
+    <div id="choices"></div>
+  </div>
+</div>
+
+<script>
+const canvas=document.getElementById("game");
+const ctx=canvas.getContext("2d");
+const DPR=Math.max(1,Math.min(2,devicePixelRatio||1));
+const $=id=>document.getElementById(id);
+
+const ui={
+ stage:$("stage"),hp:$("hp"),balls:$("balls"),coins:$("coins"),spins:$("spins"),
+ rpm:$("rpm"),overs:$("overs"),holds:$("holds"),effect:$("effect"),rushes:$("rushes"),lawbreaks:$("lawbreaks"),lts:$("lts"),fire:$("fire"),auto:$("auto"),nail:$("nail"),
+ nailVal:$("nailVal"),twist:$("twist"),twistVal:$("twistVal"),
+ rightPanel:$("rightPanel"),weak:$("weak"),strong:$("strong"),count:$("count"),rt:$("rt"),modeLabel:$("modeLabel"),
+ stopBtn:$("stopBtn"),holdStopBtn:$("holdStopBtn"),oneTwoBtn:$("oneTwoBtn"),roundStopBtn:$("roundStopBtn"),
+ overlay:$("overlay"),title:$("panelTitle"),text:$("panelText"),choices:$("choices"),msg:$("msg"),
+ bookBtn:$("bookBtn"),bookOverlay:$("bookOverlay"),bookPanel:$("bookPanel"),bookClose:$("bookClose"),
+ d1:$("d1"),d2:$("d2"),d3:$("d3"),lcdText:$("lcdText"),roleObj:$("roleObj"),flashLayer:$("flashLayer"),lcd:$("lcd"),
+ handle:$("handle"),handleKnob:$("handleKnob"),handlePct:$("handlePct"),powerFill:$("powerFill"),
+ mStop:$("mStop"),mAuto:$("mAuto"),mWeak:$("mWeak"),mStrong:$("mStrong"),mTech:$("mTech"),mBook:$("mBook")
+};
+
+let W=0,H=0, pegs=[], pockets=[], balls=[], particles=[], rightBalls=[];
+let startGate={x:0,y:0,w:34,h:18};
+let attacker={x:0,y:0,w:0,h:22};
+
+let state={
+ stage:1,enemyMax:120,enemyHP:120,ammo:40,coins:0,spins:0,fired:0,
+ damage:8,crit:.10,multiball:1,jackpot:1,extraAmmo:0,magnet:0,
+ nail:0,twist:0,auto:false,lastAuto:0,shotFlip:false,
+ combo:0,bestCombo:0,roundEnded:false,
+ rightActive:false,rightEndsAt:0,attackerCount:0,attackerOpen:true,
+ attackerCloseAt:0,attackerReopenAt:0,overWindowMs:115,overs:0,
+ lastTenthAt:0,
+
+ // technique-intervention systems
+ holds:0, maxHolds:4, nextHoldConsumeAt:0,
+ stopShoot:false, holdStop:false, oneTwo:false, roundStop:false,
+ wastedBalls:0, savedBalls:0, supportOpen:false,
+ supportCycleStart:0, supportOpenMs:520, supportClosedMs:880,
+ roundIndex:1, roundGap:false, roundGapEndsAt:0,
+ rightAmmoUsed:0, supportMisses:0,
+
+ // pachinko演出
+ effectState:"通常", effectUntil:0, effectQueue:[],
+ baseHitRate:1/18, preflashHitRate:.68, preflashMissRate:.08,
+ revivalRate:.24, rushBonusCoins:25, totalHits:0, revivals:0,
+ rushes:0, sevenTenRate:.08, silentRushHits:0, sevenTenHits:0,
+ lawbreaks:0, confirmedPatterns:0, promotionHits:0, afterscreenRevivals:0,
+ hiddenRushPromotions:0,
+
+ // Internal lottery engine (separate from presentation)
+ hitDenominator:18,
+ rushShare:.52,
+ premiumRushShare:.06,
+ roundDist:[{r:3,p:.55},{r:5,p:.30},{r:10,p:.15}],
+ spinSerial:0,
+
+ // Lucky Trigger
+ rushMode:"NONE",
+ ltEntries:0,
+ ltDirectHits:0,
+ ltRushPromotions:0,
+ ltContinuations:0,
+ ltUpgradeRate:.18,
+ ltContinueRate:.78,
+ ltPromotionPending:false,
+ ltRevealRound:0,
+ normalRushMs:15000,
+ ltInitialMs:22000,
+ ltContinueMs:14000,
+ ltRewardMultiplier:2.2,
+
+ // Encyclopedia / premium effects / upper LT
+ discovered:{},
+ ltPremiumSeen:0,
+ upperLTEntries:0,
+ upperLTContinueRate:.90,
+ upperLTInitialMs:28000,
+ upperLTContinueMs:18000,
+ upperLTRewardMultiplier:3.8,
+ upperLTRateFromLT:.045,
+ upperLTActive:false,
+
+ // visual presentation
+ reelTimer:null,
+ reelStopTimers:[],
+ lcdMode:"NORMAL",
+ audioReady:false,
+ handlePower:.50,
+ handleFiring:true,
+ mobileTechOn:true,
+ mobileLastShot:0
+};
+
+function resize(){
+ const r=canvas.getBoundingClientRect();
+ W=r.width; H=r.height;
+ canvas.width=Math.floor(W*DPR); canvas.height=Math.floor(H*DPR);
+ ctx.setTransform(DPR,0,0,DPR,0,0);
+ buildBoard();
+}
+addEventListener("resize",resize);
+
+function buildBoard(){
+ pegs=[];
+ const rows=9, gapX=Math.max(34,W/10), gapY=Math.max(38,H/13);
+ for(let row=0;row<rows;row++){
+   const y=58+row*gapY, off=(row%2)*gapX/2;
+   for(let x=gapX;x<W-gapX/2;x+=gapX) pegs.push({x:x+off,y,r:5});
+ }
+ startGate={x:W/2,y:H*.66,w:34+state.nail*5,h:18};
+ const n=5,pw=W/n,types=["MISS","DMG","JACKPOT","DMG","COIN"];
+ pockets=Array.from({length:n},(_,i)=>({x:i*pw,y:H-55,w:pw,h:55,type:types[i]}));
+ attacker={x:W*.70,y:H*.48,w:W*.23,h:22};
+}
+
+function flash(text){
+ ui.msg.textContent=text; ui.msg.style.opacity=1;
+ clearTimeout(flash.t);
+ flash.t=setTimeout(()=>ui.msg.style.opacity=0,520);
+}
+
+function updateUI(t=performance.now()){
+ ui.stage.textContent=state.stage;
+ ui.hp.textContent=Math.max(0,Math.ceil(state.enemyHP));
+ ui.balls.textContent=state.ammo;
+ ui.coins.textContent=state.coins;
+ ui.spins.textContent=state.spins;
+ ui.rpm.textContent=state.fired?(state.spins/state.fired*250).toFixed(1):"0.0";
+ ui.overs.textContent=state.overs;
+ ui.holds.textContent=`${state.holds}/${state.maxHolds}`;
+ ui.effect.textContent=state.effectState;
+ ui.rushes.textContent=state.rushes;
+ ui.lawbreaks.textContent=state.lawbreaks;
+ ui.lts.textContent=state.ltEntries;
+ ui.modeLabel.textContent=state.rushMode==="UPPER_LT"?"ULTIMATE LT":(state.rushMode==="LT"?"LUCKY TRIGGER":(state.rushMode==="NORMAL"?"RUSH":"RIGHT TIME"));
+ ui.nailVal.textContent=(state.nail>0?"+":"")+state.nail;
+ ui.twistVal.textContent=state.twist+"%";
+ ui.auto.textContent=state.auto?"AUTO ON":"AUTO OFF";
+ ui.rightPanel.style.display=state.rightActive?"grid":"none";
+ ui.count.textContent=state.attackerCount;
+ ui.rt.textContent=state.rightActive?Math.max(0,(state.rightEndsAt-t)/1000).toFixed(1):"0.0";
+ ui.weak.disabled=!state.rightActive || !state.attackerOpen || state.roundGap;
+ ui.strong.disabled=!state.rightActive || !state.attackerOpen || state.roundGap;
+
+ ui.stopBtn.classList.toggle("on",state.stopShoot);
+ ui.holdStopBtn.classList.toggle("on",state.holdStop);
+ ui.oneTwoBtn.classList.toggle("on",state.oneTwo);
+ ui.roundStopBtn.classList.toggle("on",state.roundStop);
+ ui.stopBtn.textContent="止め打ち "+(state.stopShoot?"ON":"OFF");
+ ui.holdStopBtn.textContent="保留4止め "+(state.holdStop?"ON":"OFF");
+ ui.oneTwoBtn.textContent="ワンツー "+(state.oneTwo?"ON":"OFF");
+ ui.roundStopBtn.textContent="ラウンド間止め "+(state.roundStop?"ON":"OFF");
+ if(ui.mWeak){
+   ui.mWeak.disabled=!state.rightActive;
+   ui.mStrong.disabled=!state.rightActive;
+   ui.mAuto.textContent=state.auto?"AUTO ON":"AUTO";
+ }
+}
+
+function fire(){
+ if(state.roundEnded||state.ammo<=0)return;
+
+ if(state.holdStop && state.holds>=state.maxHolds){
+   state.savedBalls++;
+   flash("保留4止め");
+   return;
+ }
+
+ state.ammo--; state.fired++; state.shotFlip=!state.shotFlip;
+ const tw=state.twist/100;
+ const hp=state.handlePower;
+ const alt=(state.shotFlip?1:-1)*(.25+tw*1.35);
+ const variance=(Math.random()-.5)*(1.3+tw*1.55+(1-hp)*.45);
+ for(let i=0;i<state.multiball;i++){
+   balls.push({
+    x:W/2+(Math.random()-.5)*12,y:18,
+    vx:variance+alt+(i-(state.multiball-1)/2)*.8,
+    vy:1.45+(state.shotFlip?tw*.18:-tw*.12),r:7,alive:true,passedStart:false
+   });
+ }
+ updateUI();
+}
+
+
+function setEffect(text,duration=900,t=performance.now()){
+ state.effectState=text;
+ state.effectUntil=t+duration;
+ updateUI(t);
+}
+
+function queueEffect(delay,fn){
+ state.effectQueue.push({at:performance.now()+delay,fn});
+}
+
+
+
+
+function ensureAudio(){
+ if(state.audioReady) return;
+ try{
+   window._pachiAC = window._pachiAC || new (window.AudioContext||window.webkitAudioContext)();
+   state.audioReady=true;
+ }catch(e){}
+}
+
+function tone(freq=880,dur=.08,type="square",gain=.035){
+ ensureAudio();
+ const ac=window._pachiAC;
+ if(!ac) return;
+ const o=ac.createOscillator(), g=ac.createGain();
+ o.type=type; o.frequency.value=freq;
+ g.gain.value=gain;
+ o.connect(g); g.connect(ac.destination);
+ const now=ac.currentTime;
+ g.gain.setValueAtTime(gain,now);
+ g.gain.exponentialRampToValueAtTime(.0001,now+dur);
+ o.start(now); o.stop(now+dur);
+}
+
+function soundPreflash(){
+ tone(140,0.08,"square",.06);
+ setTimeout(()=>tone(980,0.11,"sawtooth",.055),75);
+ setTimeout(()=>tone(1320,0.12,"square",.05),155);
+}
+
+function soundJackpot(){
+ [523,659,784,1046].forEach((f,i)=>setTimeout(()=>tone(f,.16,"square",.045),i*95));
+}
+
+function soundLT(){
+ [330,440,660,880,1320].forEach((f,i)=>setTimeout(()=>tone(f,.19,"sawtooth",.045),i*85));
+}
+
+function screenFlash(kind="red"){
+ ui.flashLayer.style.background = kind==="gold" ? "rgba(255,210,0,.28)" :
+                                  kind==="white" ? "rgba(255,255,255,.28)" :
+                                  "rgba(255,0,0,.26)";
+ ui.flashLayer.classList.add("on");
+ setTimeout(()=>ui.flashLayer.classList.remove("on"),110);
+}
+
+function dropRoleObject(){
+ ui.roleObj.classList.add("drop");
+ tone(72,.18,"sawtooth",.05);
+ setTimeout(()=>ui.roleObj.classList.remove("drop"),520);
+}
+
+function setLcdTheme(mode){
+ state.lcdMode=mode;
+ if(mode==="UPPER_LT"){
+   ui.lcd.style.background="linear-gradient(180deg,#230a2d,#07030c)";
+   ui.lcd.style.borderColor="#d946ef";
+   ui.lcdText.style.color="#f5d0fe";
+ }else if(mode==="LT"){
+   ui.lcd.style.background="linear-gradient(180deg,#2b0d13,#100509)";
+   ui.lcd.style.borderColor="#f59e0b";
+   ui.lcdText.style.color="#fde68a";
+ }else if(mode==="RUSH"){
+   ui.lcd.style.background="linear-gradient(180deg,#071d32,#040b14)";
+   ui.lcd.style.borderColor="#38bdf8";
+   ui.lcdText.style.color="#bae6fd";
+ }else{
+   ui.lcd.style.background="linear-gradient(180deg,#111827,#0b1220)";
+   ui.lcd.style.borderColor="#39445e";
+   ui.lcdText.style.color="#fff";
+ }
+}
+
+function startReels(label="変動中"){
+ clearInterval(state.reelTimer);
+ state.reelStopTimers.forEach(clearTimeout);
+ state.reelStopTimers=[];
+ [ui.d1,ui.d2,ui.d3].forEach(d=>d.classList.add("spin"));
+ ui.lcdText.textContent=label;
+ state.reelTimer=setInterval(()=>{
+   ui.d1.textContent=1+Math.floor(Math.random()*9);
+   ui.d2.textContent=1+Math.floor(Math.random()*9);
+   ui.d3.textContent=1+Math.floor(Math.random()*9);
+ },70);
+}
+
+function stopReelsTo(tenpai,hit=false,rush=false,delay=0){
+ state.reelStopTimers.forEach(clearTimeout);
+ state.reelStopTimers=[];
+ const left=tenpai;
+ const center = hit ? tenpai : ((tenpai%9)+1);
+ const right = hit ? tenpai : (((tenpai+3)%9)+1);
+
+ state.reelStopTimers.push(setTimeout(()=>{ui.d1.textContent=left;ui.d1.classList.remove("spin")},delay+150));
+ state.reelStopTimers.push(setTimeout(()=>{ui.d2.textContent=center;ui.d2.classList.remove("spin")},delay+420));
+ state.reelStopTimers.push(setTimeout(()=>{
+   ui.d3.textContent=right;ui.d3.classList.remove("spin");
+   clearInterval(state.reelTimer);state.reelTimer=null;
+   if(hit){
+     ui.lcdText.textContent=rush?"RUSH大当り":"大当り";
+     screenFlash("gold"); soundJackpot();
+   }else{
+     ui.lcdText.textContent="ハズレ";
+   }
+ },delay+720));
+}
+
+const encyclopediaEntries=[
+ {id:"c1",name:"1テン × 逆回転",desc:"大当たり確定",tag:"確定"},
+ {id:"c3",name:"3テン × 月光フリーズ",desc:"大当たり確定",tag:"確定"},
+ {id:"c5",name:"5テン × 群予告",desc:"大当たり確定",tag:"確定"},
+ {id:"c8",name:"8テン × ブラックアウト",desc:"大当たり確定",tag:"確定"},
+ {id:"silent",name:"先バレなし当たり",desc:"RUSH確定",tag:"RUSH"},
+ {id:"7ten",name:"7テン当たり",desc:"RUSH確定",tag:"RUSH"},
+ {id:"lowhold",name:"白/青保留当たり",desc:"法則崩れ・RUSH確定",tag:"法則崩れ"},
+ {id:"weak",name:"弱リーチ当たり",desc:"法則崩れ・RUSH確定",tag:"法則崩れ"},
+ {id:"hidden",name:"RUSH非突入→逆転昇格",desc:"通常に見せかけたRUSH",tag:"昇格"},
+ {id:"ltup",name:"RUSH中役物再始動",desc:"LT昇格",tag:"LT"},
+ {id:"ltpremium1",name:"LT中・Vランプ虹",desc:"LT継続濃厚",tag:"LTプレミア"},
+ {id:"ltpremium2",name:"LT中・無音フリーズ",desc:"LT継続濃厚",tag:"LTプレミア"},
+ {id:"ltpremium3",name:"LT中・逆回転777",desc:"上位LT昇格期待大",tag:"LTプレミア"},
+ {id:"upperlt",name:"0図柄・神域突入",desc:"上位LT突入",tag:"上位LT"}
+];
+
+function discover(id){
+ if(!state.discovered[id]){
+   state.discovered[id]=true;
+   const e=encyclopediaEntries.find(x=>x.id===id);
+   if(e) flash("図鑑登録: "+e.name);
+ }
+}
+
+function renderBook(){
+ ui.bookPanel.innerHTML="";
+ for(const e of encyclopediaEntries){
+   const unlocked=!!state.discovered[e.id];
+   const d=document.createElement("div");
+   d.className="bookRow"+(unlocked?"":" locked");
+   d.innerHTML= unlocked
+    ? `<b>${e.name}</b><span class="tag">${e.tag}</span>${e.desc}`
+    : `<b>？？？？？？</b><span class="tag">${e.tag}</span>未発見`;
+   ui.bookPanel.appendChild(d);
+ }
+}
+
+function ltPremiumEvent(t){
+ const roll=Math.random();
+ if(roll<.34){
+   state.ltPremiumSeen++; discover("ltpremium1");
+   setEffect("Vランプ虹",1200,t); flash("Vランプ虹!!");
+   return "CONTINUE";
+ }else if(roll<.67){
+   state.ltPremiumSeen++; discover("ltpremium2");
+   setEffect("無音フリーズ",1200,t); flash("……無音");
+   return "CONTINUE";
+ }else{
+   state.ltPremiumSeen++; discover("ltpremium3");
+   setEffect("逆回転777",1500,t); flash("逆回転 777");
+   return "UPPER_CHANCE";
+ }
+}
+
+function activateUpperLT(t){
+ state.upperLTActive=true;
+ state.rushMode="UPPER_LT";
+ setLcdTheme("UPPER_LT");
+ soundLT();
+ screenFlash("white");
+ state.upperLTEntries++;
+ state.rightActive=true;
+ state.rightEndsAt=t+state.upperLTInitialMs;
+ state.supportCycleStart=t;
+ state.supportOpen=true;
+ state.roundGap=false;
+ state.attackerOpen=true;
+ state.attackerCount=0;
+ state.attackerCloseAt=0;
+ state.attackerReopenAt=0;
+ discover("upperlt");
+ setEffect("0図柄・神域突入",1800,t);
+ ui.lcdText.textContent="ULTIMATE LUCKY TRIGGER";
+ dropRoleObject();
+ flash("ULTIMATE LUCKY TRIGGER!!");
+ updateUI(t);
+}
+
+function weightedPick(items){
+ const r=Math.random();
+ let acc=0;
+ for(const item of items){
+   acc+=item.p;
+   if(r<=acc) return item;
+ }
+ return items[items.length-1];
+}
+
+function lotterySpin(){
+ // This object is the "truth". Presentation is selected afterwards.
+ state.spinSerial++;
+
+ const hit = Math.random() < (1/state.hitDenominator);
+ if(!hit){
+   return {
+     id:state.spinSerial,
+     hit:false,
+     hitType:"MISS",
+     rush:false,
+     premium:false,
+     lt:false,
+     rounds:0
+   };
+ }
+
+ const premium = Math.random() < state.premiumRushShare;
+ const rush = premium || Math.random() < state.rushShare;
+ const round = weightedPick(state.roundDist).r;
+
+ return {
+   id:state.spinSerial,
+   hit:true,
+   hitType: premium ? "LT" : (rush ? "RUSH" : "NORMAL"),
+   rush,
+   premium,
+   lt:premium,
+   rounds: premium ? 10 : round
+ };
+}
+
+function choosePresentation(result){
+ // Presentation must never change the internal result.
+ // Instead, certain presentations are only assigned to compatible results.
+
+ let tenpai = 1 + Math.floor(Math.random()*9);
+
+ // RUSH-guaranteed presentations may be assigned to RUSH results.
+ const canUseRushCert = result.hit && result.rush;
+ const forceSeven = canUseRushCert && Math.random() < state.sevenTenRate;
+ if(forceSeven) tenpai=7;
+
+ const effects=["ノーマル発展","群予告","役物落下","ブラックアウト","逆回転","月光フリーズ"];
+ const effectWeights=[.52,.16,.13,.08,.07,.04];
+ let rr=Math.random(),acc=0,specialEffect=effects[0];
+ for(let i=0;i<effects.length;i++){
+   acc+=effectWeights[i];
+   if(rr<=acc){specialEffect=effects[i];break;}
+ }
+
+ // Confirmed pattern assignment:
+ // If a non-compatible miss randomly lands on a confirmed pair, reroll the effect.
+ const confirmedMap={"1":"逆回転","3":"月光フリーズ","5":"群予告","8":"ブラックアウト"};
+ let comboConfirmed = confirmedMap[String(tenpai)]===specialEffect;
+
+ if(comboConfirmed && !result.hit){
+   specialEffect="ノーマル発展";
+   comboConfirmed=false;
+ }
+
+ // If the internal result is RUSH, sometimes deliberately assign a known cert pair.
+ if(canUseRushCert && Math.random()<.08){
+   const pairs=[
+     {tenpai:1,effect:"逆回転"},
+     {tenpai:3,effect:"月光フリーズ"},
+     {tenpai:5,effect:"群予告"},
+     {tenpai:8,effect:"ブラックアウト"}
+   ];
+   const p=pairs[Math.floor(Math.random()*pairs.length)];
+   tenpai=p.tenpai; specialEffect=p.effect; comboConfirmed=true;
+ }
+
+ // Preflash: silent-hit may only be used when the internal result is RUSH,
+ // because "no preflash hit = RUSH" is a game law.
+ let preflash;
+ if(result.hit){
+   if(result.rush && Math.random()<.20) preflash=false;
+   else preflash=Math.random()<state.preflashHitRate;
+ }else{
+   preflash=Math.random()<state.preflashMissRate;
+ }
+
+ // Reserve color. Low-color jackpot is a RUSH-cert law in this game.
+ let color="白保留";
+ const r=Math.random();
+ if(result.hit){
+   if(result.rush && r<.10) color="白保留";
+   else if(result.rush && r<.18) color="青保留";
+   else if(r<.32) color="虹保留";
+   else if(r<.48) color="金保留";
+   else if(r<.72) color="赤保留";
+   else color="緑保留";
+ }else{
+   if(r<.015) color="赤保留";
+   else if(r<.07) color="緑保留";
+   else if(r<.28) color="青保留";
+   else color="白保留";
+ }
+
+ // Weak reach jackpot is also RUSH-cert, so only assign weak reach to a RUSH hit.
+ let weakReach = specialEffect==="ノーマル発展";
+ if(result.hit && !result.rush && weakReach){
+   specialEffect="役物落下";
+   weakReach=false;
+ }
+
+ // Some RUSH results are intentionally disguised as ordinary hits.
+ const hiddenRushPromotion =
+   result.hit && result.rush && !result.lt &&
+   !forceSeven && !comboConfirmed && preflash &&
+   color!=="白保留" && color!=="青保留" &&
+   !weakReach &&
+   Math.random()<.28;
+
+ return {
+   tenpai,
+   sevenTen: tenpai===7 && result.rush,
+   specialEffect,
+   comboConfirmed,
+   preflash,
+   silentHit:result.hit && !preflash,
+   color,
+   weakReach,
+   lawBreak: result.hit && result.rush &&
+      ((color==="白保留" || color==="青保留") || weakReach),
+   hiddenRushPromotion
+ };
+}
+
+function resolveSpin(t){
+ const result=lotterySpin();
+ const pres=choosePresentation(result);
+
+ startReels("変動中");
+
+ if(pres.preflash){
+   setEffect("先バレ",700,t);
+   flash("🔴 先バレ!");
+   soundPreflash();
+   screenFlash("red");
+ }
+
+ queueEffect(pres.preflash?500:100,()=>setEffect(pres.color,600));
+
+ queueEffect(pres.preflash?900:500,()=>{
+   if(pres.sevenTen){
+     discover("7ten");
+     setEffect("7テン",800);
+     flash("7テン!! RUSH濃厚");
+     ui.lcdText.textContent="7テン";
+   }else{
+     setEffect(`${pres.tenpai}テン`,650);
+   }
+ });
+
+ queueEffect(pres.preflash?1300:900,()=>{
+   setEffect(pres.specialEffect,800);
+   ui.lcdText.textContent=pres.specialEffect;
+   if(pres.specialEffect==="役物落下" || pres.specialEffect==="月光フリーズ"){
+     dropRoleObject();
+   }
+   if(pres.specialEffect==="ブラックアウト"){
+     ui.lcd.style.filter="brightness(.15)";
+     setTimeout(()=>ui.lcd.style.filter="",500);
+   }
+   if(pres.comboConfirmed){
+     state.confirmedPatterns++;
+     const mapId={1:"c1",3:"c3",5:"c5",8:"c8"}[pres.tenpai];
+     if(mapId) discover(mapId);
+     flash(`${pres.tenpai}テン × ${pres.specialEffect} = 大当り確定!`);
+   }
+ });
+
+ queueEffect(pres.preflash?1800:1400,()=>{
+   if(result.hit){
+     setEffect(pres.weakReach ? "弱リーチ" : "激アツリーチ",800);
+     if(pres.lawBreak) flash("法則崩れ…!?");
+     else if(!pres.weakReach) flash("激アツ!");
+   }else{
+     setEffect(pres.weakReach ? "弱リーチ" : "リーチ",750);
+   }
+ });
+
+ if(!result.hit){
+   queueEffect(pres.preflash?2050:1650,()=>stopReelsTo(pres.tenpai,false,false));
+   queueEffect(pres.preflash?2300:1850,()=>setEffect("ハズレ",650));
+   return;
+ }
+
+ const afterscreenRevival=Math.random()<.08;
+ const revival=!afterscreenRevival && Math.random()<state.revivalRate;
+
+ const finishHit=()=>{
+   stopReelsTo(pres.tenpai,true,result.rush);
+   state.totalHits++;
+   state.coins+=state.rushBonusCoins;
+
+   if(pres.sevenTen) state.sevenTenHits++;
+   if(pres.silentHit){ state.silentRushHits++; discover("silent"); }
+
+   if(pres.lawBreak){
+     state.lawbreaks++;
+     if(pres.color==="白保留" || pres.color==="青保留") discover("lowhold");
+     if(pres.weakReach) discover("weak");
+     flash("法則崩れ = RUSH確定!");
+   }
+
+   if(result.rush){
+     state.rushes++;
+
+     // Ultra-rare direct route: a premium LT result can reveal the 0 symbol and jump straight to ULTIMATE LT.
+     if(result.lt && Math.random()<.035){
+       state.ltDirectHits++;
+       setEffect("0テン",1200);
+       ui.d1.textContent=0;ui.d2.textContent=0;ui.d3.textContent=0;
+       ui.lcdText.textContent="0テン";
+       flash("0図柄…!?");
+       screenFlash("white");
+       queueEffect(1100,()=>activateUpperLT(performance.now()));
+       return;
+     }
+
+     // The new "looks like non-RUSH, then promotes" route.
+     if(pres.hiddenRushPromotion){
+       state.hiddenRushPromotions++;
+       discover("hidden");
+       setEffect("通常大当り",1300);
+       flash(`${result.rounds}R 通常…`);
+       queueEffect(1450,()=>{
+         setEffect("RUSH非突入",1150);
+         flash("RUSH非突入…");
+       });
+       queueEffect(2800,()=>{
+         setEffect("昇格チャレンジ",900);
+         flash("……待て");
+       });
+       queueEffect(3700,()=>{
+         state.promotionHits++;
+         setEffect("RUSH昇格!!",1600);
+         flash("逆転 RUSH突入!!");
+         startRight(performance.now(),"NORMAL");
+         updateUI();
+       });
+       return;
+     }
+
+     if(result.lt){
+       setEffect("LT直行",1500);
+       flash(`10R → LUCKY TRIGGER!!`);
+     }else if(pres.comboConfirmed){
+       setEffect(`${pres.tenpai}テン法則 大当り`,1500);
+       flash("確定パターン → RUSH!");
+     }else if(pres.lawBreak){
+       setEffect("法則崩れ RUSH",1500);
+     }else if(pres.sevenTen){
+       setEffect("7テン RUSH確定",1500);
+       flash("7テン大当り → RUSH確定!");
+     }else if(pres.silentHit){
+       setEffect("先バレなし RUSH確定",1600);
+       flash("先バレなし当り → RUSH確定!");
+     }else{
+       setEffect(`${result.rounds}R RUSH`,1400);
+       flash(`大当り → ${result.rounds}R RUSH!!`);
+     }
+     startRight(performance.now(),result.lt?"LT":"NORMAL");
+   }else{
+     setEffect(`${result.rounds}R 通常大当り`,1400);
+     flash(`${result.rounds}R 大当り・通常`);
+     state.coins+=10;
+   }
+   updateUI();
+ };
+
+ if(afterscreenRevival){
+   queueEffect(pres.preflash?2350:1950,()=>{
+     setEffect("ハズレ",650);
+     flash("ハズレ…");
+   });
+   queueEffect(pres.preflash?3200:2800,()=>setEffect("通常画面",800));
+   queueEffect(pres.preflash?4300:3900,()=>{
+     state.afterscreenRevivals++;
+     state.revivals++;
+     setEffect("画面復帰→復活!",1500);
+     flash("戻ったと思ったら復活!!");
+     finishHit();
+   });
+ }else if(revival){
+   queueEffect(pres.preflash?2450:2050,()=>{
+     setEffect("ハズレ…",900);
+     flash("ハズレ…");
+   });
+   queueEffect(pres.preflash?3500:3100,()=>{
+     state.revivals++;
+     setEffect(result.rush?"復活 RUSH確定":"復活大当り!",1300);
+     flash(result.rush?"復活ッ!! RUSH確定":"復活ッ!!");
+     finishHit();
+   });
+ }else{
+   queueEffect(pres.preflash?2500:2100,finishHit);
+ }
+}
+function activateLT(t,reason="LT突入"){
+ state.rushMode="LT";
+ setLcdTheme("LT");
+ soundLT();
+ state.ltEntries++;
+ if(reason==="RUSH中昇格"){ state.ltRushPromotions++; discover("ltup"); }
+ state.ltPromotionPending=false;
+ state.ltRevealRound=0;
+ state.rightActive=true;
+ state.rightEndsAt=Math.max(state.rightEndsAt,t+state.ltInitialMs);
+ state.supportCycleStart=t;
+ state.supportOpen=true;
+ state.roundGap=false;
+ state.attackerOpen=true;
+ state.attackerCount=0;
+ state.attackerCloseAt=0;
+ state.attackerReopenAt=0;
+ setEffect("LUCKY TRIGGER",1700,t);
+ flash(reason==="RUSH中昇格"?"RUSH → LT昇格!!":"LUCKY TRIGGER突入!!");
+ updateUI(t);
+}
+
+function startRight(t,mode="NORMAL"){
+ if(mode==="LT"){
+   state.ltDirectHits++;
+   activateLT(t,"LT直行");
+   return;
+ }
+
+ state.rushMode="NORMAL";
+ setLcdTheme("RUSH");
+ state.rightActive=true;
+ state.rightEndsAt=Math.max(state.rightEndsAt,t+state.normalRushMs);
+ state.supportCycleStart=t;
+ state.supportOpen=true;
+ state.roundGap=false;
+ state.roundIndex=1;
+
+ // LT昇格はRUSH開始時点で内部的に決定。見せるのは後のラウンド。
+ state.ltPromotionPending=Math.random()<state.ltUpgradeRate;
+ state.ltRevealRound=state.ltPromotionPending ? (2+Math.floor(Math.random()*2)) : 0;
+
+ if(state.attackerReopenAt===0){state.attackerOpen=true;state.attackerCount=0;}
+ flash("RUSH START!");
+ updateUI(t);
+}
+function rightShot(power){
+ if(!state.rightActive||state.roundEnded)return;
+
+ // Round-gap stop shooting: firing here is waste unless the technique is enabled.
+ if(state.roundGap){
+   if(state.roundStop){
+     state.savedBalls++;
+     flash("ラウンド間止め");
+     return;
+   }else{
+     state.coins=Math.max(0,state.coins-1);
+     state.wastedBalls++;
+     flash("ラウンド間の無駄玉");
+     return;
+   }
+ }
+
+ // Electric support timing: opening/closed cycle.
+ if(!state.supportOpen){
+   if(state.stopShoot){
+     state.savedBalls++;
+     flash("電サポ止め打ち");
+     return;
+   }else{
+     state.supportMisses++;
+     state.wastedBalls++;
+   }
+ }
+
+ state.rightAmmoUsed++;
+
+ const now=performance.now();
+ let base=power==="weak"?760:480;
+ let jitter=(Math.random()-.5)*(power==="weak"?46:34);
+
+ // One-two technique narrows travel-time variance and improves catch-up consistency.
+ if(state.oneTwo){
+   jitter*=0.42;
+   if(power==="weak") base+=28;
+   if(power==="strong") base-=24;
+ }
+
+ rightBalls.push({
+   x:W-20,y:45,spawn:now,arrive:now+base+jitter,power,
+   trail:[],resolved:false
+ });
+}
+function resolveRightBall(rb,t){
+ if(rb.resolved)return;
+ rb.resolved=true;
+ if(!state.rightActive || !state.attackerOpen || state.roundGap) return;
+
+ // Ball arriving while support is closed is lost unless timing was good.
+ if(!state.supportOpen){
+   state.supportMisses++;
+   state.wastedBalls++;
+   return;
+ }
+
+ if(state.attackerCount<10){
+   state.attackerCount++;
+   const modeMul=state.rushMode==="UPPER_LT"?state.upperLTRewardMultiplier:(state.rushMode==="LT"?state.ltRewardMultiplier:1);
+   state.coins+=state.rushMode==="UPPER_LT"?5:(state.rushMode==="LT"?3:1);
+   state.enemyHP-=state.damage*.25*modeMul;
+   burst(attacker.x+attacker.w*.5,attacker.y,7);
+   if(state.attackerCount===10){
+     state.lastTenthAt=t;
+     state.attackerCloseAt=t+state.overWindowMs+(state.rushMode==="UPPER_LT"?30:(state.rushMode==="LT"?15:0));
+     flash("10 COUNT! OVERを狙え");
+   }
+ }else{
+   // Only the 11th ball inside the tiny closing window counts as OVER.
+   if(t<=state.attackerCloseAt){
+     state.overs++;
+     state.coins+=state.rushMode==="UPPER_LT"?70:(state.rushMode==="LT"?40:15);
+     const modeMul=state.rushMode==="UPPER_LT"?state.upperLTRewardMultiplier:(state.rushMode==="LT"?state.ltRewardMultiplier:1);
+     const bonus=state.damage*(4+state.jackpot*.5)*modeMul;
+     state.enemyHP-=bonus;
+     flash("OVER入賞!! +" + Math.round(bonus) + "DMG");
+     state.attackerCloseAt=t+45;
+   }
+ }
+ updateUI(t);
+}
+
+function finishAttackerRound(t){
+ // LT昇格は内部ではRUSH開始時に決まっており、ここで初めて告知する。
+ if(state.rushMode==="NORMAL" &&
+    state.ltPromotionPending &&
+    state.roundIndex>=state.ltRevealRound){
+   state.attackerCount=0;
+   state.attackerCloseAt=0;
+   setEffect("LT昇格演出",900,t);
+   flash("役物再始動…!?");
+   queueEffect(900,()=>activateLT(performance.now(),"RUSH中昇格"));
+   return;
+ }
+
+ state.attackerOpen=false;
+ state.roundGap=true;
+ const gap=state.rushMode==="LT"?520:900;
+ state.roundGapEndsAt=t+gap;
+ state.attackerReopenAt=t+gap;
+ state.attackerCount=0;
+ state.attackerCloseAt=0;
+}
+function hitPocket(ball,p,t){
+ if(!ball.alive)return;
+ ball.alive=false;
+ let dmg=0;
+ if(p.type==="MISS"){state.combo=0;}
+ else if(p.type==="DMG"){dmg=state.damage;}
+ else if(p.type==="JACKPOT"){
+   dmg=state.damage*3*state.jackpot; state.coins+=3; startRight(t,"NORMAL"); flash("JACKPOT → RUSH!");
+ }else if(p.type==="COIN"){state.coins+=5;dmg=state.damage*.5;}
+ if(dmg>0){
+   const crit=Math.random()<state.crit;
+   if(crit){dmg*=2;flash("CRITICAL!!");}
+   state.enemyHP-=dmg;state.combo++;state.bestCombo=Math.max(state.bestCombo,state.combo);
+   burst(ball.x,ball.y,crit?18:8);
+ }
+ updateUI(t);
+ if(state.enemyHP<=0&&!state.roundEnded){state.roundEnded=true;setTimeout(showUpgrade,500);}
+}
+
+function burst(x,y,n){
+ for(let i=0;i<n;i++)particles.push({x,y,vx:(Math.random()-.5)*5,vy:(Math.random()-.5)*5,life:30});
+}
+
+const upgrades=[
+ {name:"火力アップ",desc:"通常ダメージ +4",apply:()=>state.damage+=4},
+ {name:"CRITICAL",desc:"クリティカル率 +10%",apply:()=>state.crit=Math.min(.8,state.crit+.10)},
+ {name:"MULTI BALL",desc:"通常打ちの玉 +1",apply:()=>state.multiball=Math.min(5,state.multiball+1)},
+ {name:"JACKPOT強化",desc:"JACKPOT倍率 +1",apply:()=>state.jackpot++},
+ {name:"追加装填",desc:"毎ステージの玉 +8",apply:()=>state.extraAmmo+=8},
+ {name:"磁力改造",desc:"中央STARTへ少し寄りやすくなる",apply:()=>state.magnet=Math.min(.06,state.magnet+.012)},
+ {name:"アタッカー延命",desc:"OVER入賞猶予 +15ms",apply:()=>state.overWindowMs=Math.min(180,state.overWindowMs+15)},
+ {name:"電サポ強化",desc:"電サポOPEN時間 +70ms",apply:()=>state.supportOpenMs=Math.min(800,state.supportOpenMs+70)},
+ {name:"保留拡張",desc:"最大保留 +1",apply:()=>state.maxHolds=Math.min(8,state.maxHolds+1)},
+ {name:"先バレ強化",desc:"大当り時の先バレ発生率 +10%",apply:()=>state.preflashHitRate=Math.min(.95,state.preflashHitRate+.10)},
+ {name:"復活演出UP",desc:"大当りの復活演出率 +8%",apply:()=>state.revivalRate=Math.min(.60,state.revivalRate+.08)},
+ {name:"RUSH突入率UP",desc:"内部RUSH振り分け +8%",apply:()=>state.rushShare=Math.min(.90,state.rushShare+.08)},
+ {name:"7テン出現UP",desc:"大当り時の7テン率 +3%",apply:()=>state.sevenTenRate=Math.min(.25,state.sevenTenRate+.03)},
+ {name:"違和感センサー",desc:"法則崩れ発生時の報酬 +5コイン",apply:()=>state.rushBonusCoins+=5},
+ {name:"確定演出強化",desc:"特定テンパイ×演出の発生を見抜きやすくする演出強化",apply:()=>state.revivalRate=Math.min(.65,state.revivalRate+.03)},
+ {name:"逆転昇格UP",desc:"RUSH当たりの一部を『非突入→逆転昇格』演出にしやすくする",apply:()=>state.sevenTenRate=Math.max(.02,state.sevenTenRate-.01)},
+ {name:"LT昇格率UP",desc:"通常RUSH開始時のLT内部昇格率 +5%",apply:()=>state.ltUpgradeRate=Math.min(.45,state.ltUpgradeRate+.05)},
+ {name:"LT継続率UP",desc:"LT継続率 +4%",apply:()=>state.ltContinueRate=Math.min(.92,state.ltContinueRate+.04)},
+ {name:"LT火力UP",desc:"LT中の報酬・ダメージ倍率 +0.25",apply:()=>state.ltRewardMultiplier+=.25},
+ {name:"神域抽選UP",desc:"LTプレミアから上位LTへ昇格する確率 +1.5%",apply:()=>state.upperLTRateFromLT=Math.min(.15,state.upperLTRateFromLT+.015)},
+ {name:"上位LT継続UP",desc:"上位LT継続率 +2%",apply:()=>state.upperLTContinueRate=Math.min(.96,state.upperLTContinueRate+.02)}
+];
+
+function sampleUpgrades(){return[...upgrades].sort(()=>Math.random()-.5).slice(0,3)}
+
+function showUpgrade(){
+ ui.overlay.style.display="flex";
+ ui.title.textContent=`STAGE ${state.stage} CLEAR`;
+ ui.text.innerHTML=`最大コンボ: <b>${state.bestCombo}</b>　OVER: <b>${state.overs}</b><br>次のステージに持ち込む改造を1つ選択`;
+ ui.choices.innerHTML="";
+ for(const up of sampleUpgrades()){
+   const b=document.createElement("button");b.className="choice";
+   b.innerHTML=`<strong>${up.name}</strong><span>${up.desc}</span>`;
+   b.onclick=()=>{up.apply();nextStage();};ui.choices.appendChild(b);
+ }
+}
+
+function nextStage(){
+ state.stage++;
+ state.enemyMax=Math.round(120*Math.pow(1.35,state.stage-1));state.enemyHP=state.enemyMax;
+ state.ammo=40+state.extraAmmo;state.bestCombo=0;state.combo=0;state.roundEnded=false;
+ state.rightActive=false;state.attackerOpen=true;state.attackerCount=0;state.attackerReopenAt=0;
+ state.supportOpen=false;state.roundGap=false;state.holds=0;state.nextHoldConsumeAt=0;
+ state.rushMode="NONE";state.ltPromotionPending=false;state.ltRevealRound=0;state.upperLTActive=false;
+ setLcdTheme("NORMAL");
+ ui.d1.textContent=1;ui.d2.textContent=2;ui.d3.textContent=3;ui.lcdText.textContent="通常変動";
+ state.effectState="通常";state.effectUntil=0;state.effectQueue=[];
+ balls=[];rightBalls=[];ui.overlay.style.display="none";updateUI();
+}
+
+function gameOver(){
+ state.roundEnded=true;state.rightActive=false;ui.overlay.style.display="flex";
+ ui.title.textContent="GAME OVER";
+ ui.text.innerHTML=`STAGE <b>${state.stage}</b>　回転 <b>${state.spins}</b>　OVER <b>${state.overs}</b><br>
+ 最終1k回転: <b>${state.fired?(state.spins/state.fired*250).toFixed(1):"0.0"}</b>　
+ 無駄玉: <b>${state.wastedBalls}</b>　節約: <b>${state.savedBalls}</b><br>
+ 大当り: <b>${state.totalHits}</b>　RUSH: <b>${state.rushes}</b>　復活: <b>${state.revivals}</b><br>
+ 先バレなし当り: <b>${state.silentRushHits}</b>　7テン当り: <b>${state.sevenTenHits}</b><br>
+ 法則崩れ: <b>${state.lawbreaks}</b>　確定パターン: <b>${state.confirmedPatterns}</b><br>
+ 昇格: <b>${state.promotionHits}</b>　非突入→RUSH: <b>${state.hiddenRushPromotions}</b>　
+ 画面復帰復活: <b>${state.afterscreenRevivals}</b><br>
+ 内部抽選: <b>1/${state.hitDenominator}</b>　内部RUSH振分: <b>${Math.round(state.rushShare*100)}%</b><br>
+ LT突入: <b>${state.ltEntries}</b>（直行 ${state.ltDirectHits} / RUSH中昇格 ${state.ltRushPromotions}）　
+ LT継続: <b>${state.ltContinuations}</b><br>
+ LTプレミア: <b>${state.ltPremiumSeen}</b>　上位LT: <b>${state.upperLTEntries}</b>　
+ 図鑑: <b>${Object.keys(state.discovered).length}/${encyclopediaEntries.length}</b>`;
+ ui.choices.innerHTML="";
+ const b=document.createElement("button");b.className="choice";
+ b.innerHTML="<strong>もう一度</strong><span>最初から挑戦する</span>";b.onclick=reset;ui.choices.appendChild(b);
+}
+
+function reset(){
+ Object.assign(state,{
+  stage:1,enemyMax:120,enemyHP:120,ammo:40,coins:0,spins:0,fired:0,
+  damage:8,crit:.10,multiball:1,jackpot:1,extraAmmo:0,magnet:0,
+  nail:0,twist:0,auto:false,lastAuto:0,shotFlip:false,combo:0,bestCombo:0,roundEnded:false,
+  rightActive:false,rightEndsAt:0,attackerCount:0,attackerOpen:true,attackerCloseAt:0,
+  attackerReopenAt:0,overWindowMs:115,overs:0,lastTenthAt:0,
+  holds:0,maxHolds:4,nextHoldConsumeAt:0,
+  stopShoot:false,holdStop:false,oneTwo:false,roundStop:false,
+  wastedBalls:0,savedBalls:0,supportOpen:false,supportCycleStart:0,
+  supportOpenMs:520,supportClosedMs:880,roundIndex:1,roundGap:false,roundGapEndsAt:0,
+  rightAmmoUsed:0,supportMisses:0,
+  effectState:"通常",effectUntil:0,effectQueue:[],
+  baseHitRate:1/18,preflashHitRate:.68,preflashMissRate:.08,
+  revivalRate:.24,rushBonusCoins:25,totalHits:0,revivals:0,
+  rushes:0,sevenTenRate:.08,silentRushHits:0,sevenTenHits:0,
+  lawbreaks:0,confirmedPatterns:0,promotionHits:0,afterscreenRevivals:0,hiddenRushPromotions:0,
+  hitDenominator:18,rushShare:.52,premiumRushShare:.06,
+  roundDist:[{r:3,p:.55},{r:5,p:.30},{r:10,p:.15}],spinSerial:0,
+  rushMode:"NONE",ltEntries:0,ltDirectHits:0,ltRushPromotions:0,ltContinuations:0,
+  ltUpgradeRate:.18,ltContinueRate:.78,ltPromotionPending:false,ltRevealRound:0,
+  normalRushMs:15000,ltInitialMs:22000,ltContinueMs:14000,ltRewardMultiplier:2.2,
+  discovered:{},ltPremiumSeen:0,upperLTEntries:0,upperLTContinueRate:.90,
+  upperLTInitialMs:28000,upperLTContinueMs:18000,upperLTRewardMultiplier:3.8,
+  upperLTRateFromLT:.045,upperLTActive:false,
+  reelTimer:null,reelStopTimers:[],lcdMode:"NORMAL",audioReady:false,
+  handlePower:.50,handleFiring:true,mobileTechOn:true,mobileLastShot:0
+ });
+ ui.nail.value=0;ui.twist.value=0;balls=[];rightBalls=[];particles=[];
+ clearInterval(state.reelTimer);
+ state.reelStopTimers.forEach(clearTimeout);
+ setLcdTheme("NORMAL");
+ ui.d1.textContent=1;ui.d2.textContent=2;ui.d3.textContent=3;ui.lcdText.textContent="通常変動";
+ [ui.d1,ui.d2,ui.d3].forEach(d=>d.classList.remove("spin"));
+ setHandlePower(.50);
+ state.holdStop=true;state.stopShoot=true;state.oneTwo=true;state.roundStop=true;
+ ui.mTech.textContent="技術介入 ON";
+ ui.mStop.textContent="発射停止";
+ ui.overlay.style.display="none";buildBoard();updateUI();
+}
+
+function step(t){
+ const cadence=430-(state.handlePower*170);
+ if(state.handleFiring && !state.rightActive && !state.roundEnded && state.ammo>0 && t-state.mobileLastShot>cadence){
+   fire();
+   state.mobileLastShot=t;
+ }
+ if(state.auto&&!state.roundEnded&&state.ammo>0&&t-state.lastAuto>340){fire();state.lastAuto=t;}
+
+ // Consume one hold periodically: this makes hold-4 stop meaningful.
+ if(state.holds>0 && state.nextHoldConsumeAt && t>=state.nextHoldConsumeAt){
+   state.holds--;
+   resolveSpin(t);
+   state.nextHoldConsumeAt = state.holds>0 ? t+900 : 0;
+ }
+
+ // Timed演出 queue.
+ if(state.effectQueue.length){
+   const ready=state.effectQueue.filter(e=>e.at<=t);
+   state.effectQueue=state.effectQueue.filter(e=>e.at>t);
+   for(const e of ready) e.fn();
+ }
+ if(state.effectUntil && t>=state.effectUntil && state.effectQueue.length===0){
+   state.effectState="通常";
+   state.effectUntil=0;
+ }
+
+ // Electric support cycle.
+ if(state.rightActive){
+   const cycle=state.supportOpenMs+state.supportClosedMs;
+   const pos=(t-state.supportCycleStart)%cycle;
+   state.supportOpen = pos < state.supportOpenMs;
+ }
+
+ if(state.rightActive&&t>=state.rightEndsAt){
+   if(state.rushMode==="UPPER_LT"){
+     if(Math.random()<state.upperLTContinueRate){
+       state.ltContinuations++;
+       state.rightEndsAt=t+state.upperLTContinueMs;
+       state.supportCycleStart=t;
+       state.attackerOpen=true;
+       state.attackerCount=0;
+       state.roundGap=false;
+       setEffect("ULTIMATE LT 継続",1200,t);
+       flash("神域継続!!");
+     }else{
+       state.rightActive=false;
+       state.attackerOpen=false;
+       state.rushMode="NONE";
+       state.upperLTActive=false;
+       setLcdTheme("NORMAL");
+       flash("ULTIMATE LT END");
+     }
+   }else if(state.rushMode==="LT"){
+     const premium=Math.random()<.22 ? ltPremiumEvent(t) : null;
+
+     if(premium==="UPPER_CHANCE" && Math.random()<state.upperLTRateFromLT){
+       queueEffect(900,()=>activateUpperLT(performance.now()));
+     }else if(premium==="CONTINUE" || Math.random()<state.ltContinueRate){
+       state.ltContinuations++;
+       state.rightEndsAt=t+state.ltContinueMs;
+       state.supportCycleStart=t;
+       state.attackerOpen=true;
+       state.attackerCount=0;
+       state.roundGap=false;
+       setEffect(premium?"LTプレミア継続":"LT継続",1100,t);
+       flash(premium?"プレミア継続!!":"LUCKY TRIGGER 継続!!");
+     }else{
+       state.rightActive=false;
+       state.attackerOpen=false;
+       state.rushMode="NONE";
+       setLcdTheme("NORMAL");
+       flash("LT END");
+     }
+   }else{
+     const endedMode=state.rushMode;
+     state.rightActive=false;
+     state.attackerOpen=false;
+     state.rushMode="NONE";
+     state.ltPromotionPending=false;
+     setLcdTheme("NORMAL");
+     flash(endedMode==="NORMAL"?"RUSH END":"RIGHT END");
+   }
+ }
+ if(!state.attackerOpen&&state.attackerReopenAt&&t>=state.attackerReopenAt&&state.rightActive){
+   state.attackerOpen=true;
+   state.attackerReopenAt=0;
+   state.attackerCount=0;
+   if(state.roundGap){
+     state.roundGap=false;
+     state.roundIndex++;
+     flash("ROUND "+state.roundIndex);
+   }else{
+     flash("ATTACKER OPEN");
+   }
+ }
+ if(state.attackerOpen&&state.attackerCount>=10&&state.attackerCloseAt&&t>state.attackerCloseAt){
+   finishAttackerRound(t);
+ }
+
+ for(const rb of rightBalls){
+   if(rb.resolved)continue;
+   const u=Math.max(0,Math.min(1,(t-rb.spawn)/(rb.arrive-rb.spawn)));
+   const sx=W-20,sy=45, ex=attacker.x+attacker.w*.55,ey=attacker.y+attacker.h/2;
+   rb.x=sx+(ex-sx)*u;
+   rb.y=sy+(ey-sy)*u + Math.sin(u*Math.PI)*(-65);
+   if(t>=rb.arrive)resolveRightBall(rb,t);
+ }
+ rightBalls=rightBalls.filter(rb=>!rb.resolved || t-rb.arrive<150);
+
+ for(const b of balls){
+   if(!b.alive)continue;
+   b.vy+=.18;if(state.magnet>0)b.vx+=(W/2-b.x)*state.magnet/100;
+   b.x+=b.vx;b.y+=b.vy;
+   if(b.x-b.r<0){b.x=b.r;b.vx=Math.abs(b.vx)*.85}
+   if(b.x+b.r>W){b.x=W-b.r;b.vx=-Math.abs(b.vx)*.85}
+   for(const p of pegs){
+     const dx=b.x-p.x,dy=b.y-p.y,d2=dx*dx+dy*dy,rr=b.r+p.r;
+     if(d2<rr*rr){
+       const d=Math.sqrt(d2)||.01,nx=dx/d,ny=dy/d,overlap=rr-d;
+       b.x+=nx*overlap;b.y+=ny*overlap;
+       const dot=b.vx*nx+b.vy*ny;b.vx-=1.65*dot*nx;b.vy-=1.65*dot*ny;b.vx+=(Math.random()-.5)*.35;
+     }
+   }
+   if(!b.passedStart&&b.y>=startGate.y-startGate.h/2&&b.y<=startGate.y+startGate.h/2&&Math.abs(b.x-startGate.x)<=startGate.w/2){
+     b.passedStart=true;
+     if(state.holds < state.maxHolds){
+       state.holds++;
+       state.spins++;
+       state.coins++;
+       if(state.nextHoldConsumeAt===0) state.nextHoldConsumeAt=t+900;
+     }else{
+       state.wastedBalls++;
+       flash("保留満タン・無駄玉");
+     }
+     let dmg=state.damage*.75;const crit=Math.random()<state.crit;if(crit)dmg*=2;
+     state.enemyHP-=dmg;state.combo++;state.bestCombo=Math.max(state.bestCombo,state.combo);burst(b.x,b.y,10);b.vy=Math.max(b.vy,2.2);
+     flash(crit?"START + CRITICAL!":"START!");updateUI(t);
+     if(state.enemyHP<=0&&!state.roundEnded){state.roundEnded=true;setTimeout(showUpgrade,500);}
+   }
+   if(b.y>H-55){
+     const idx=Math.max(0,Math.min(pockets.length-1,Math.floor(b.x/(W/pockets.length))));
+     hitPocket(b,pockets[idx],t);
+   }
+   if(b.y>H+30)b.alive=false;
+ }
+ balls=balls.filter(b=>b.alive);
+
+ for(const p of particles){p.x+=p.vx;p.y+=p.vy;p.vy+=.08;p.life--}
+ particles=particles.filter(p=>p.life>0);
+
+ if(!state.roundEnded&&state.ammo<=0&&balls.length===0&&state.enemyHP>0&&!state.rightActive)gameOver();
+ updateUI(t);
+}
+
+function draw(){
+ ctx.clearRect(0,0,W,H);
+
+ const hp=Math.max(0,state.enemyHP/state.enemyMax);
+ ctx.fillStyle="#242a38";ctx.fillRect(20,18,W-40,18);
+ ctx.fillStyle="#ff453a";ctx.fillRect(20,18,(W-40)*hp,18);
+ ctx.fillStyle="#fff";ctx.font="bold 11px sans-serif";ctx.fillText("BOSS",22,14);
+
+ for(const p of pegs){ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,Math.PI*2);ctx.fillStyle="#d7dde9";ctx.fill()}
+
+ ctx.strokeStyle="#34c759";ctx.lineWidth=3;ctx.strokeRect(startGate.x-startGate.w/2,startGate.y-startGate.h/2,startGate.w,startGate.h);
+ ctx.fillStyle="#34c759";ctx.textAlign="center";ctx.font="bold 11px sans-serif";ctx.fillText("START",startGate.x,startGate.y-13);
+ ctx.textAlign="left";
+
+ // attacker
+ ctx.fillStyle=state.rightActive?(state.attackerOpen?"#af52de":"#3a2b42"):"#2b2630";
+ ctx.fillRect(attacker.x,attacker.y,attacker.w,attacker.h);
+ ctx.fillStyle="#fff";ctx.font="bold 10px sans-serif";ctx.textAlign="center";
+ ctx.fillText(state.rightActive?(state.attackerOpen?`ATTACKER ${state.attackerCount}/10`:"CLOSED"):"ATTACKER",attacker.x+attacker.w/2,attacker.y+15);
+ ctx.textAlign="left";
+
+ for(const p of pockets){
+   ctx.fillStyle=p.type==="JACKPOT"?"#ff2d55":p.type==="DMG"?"#5856d6":p.type==="COIN"?"#ffcc00":"#2c2c2e";
+   ctx.fillRect(p.x+2,p.y+2,p.w-4,p.h-4);
+   ctx.fillStyle=p.type==="COIN"?"#111":"#fff";ctx.textAlign="center";ctx.font="bold 11px sans-serif";
+   ctx.fillText(p.type,p.x+p.w/2,p.y+31);
+ }
+ ctx.textAlign="left";
+
+ for(const b of balls){ctx.beginPath();ctx.arc(b.x,b.y,b.r,0,Math.PI*2);ctx.fillStyle="#fff";ctx.fill();ctx.strokeStyle="#94a3b8";ctx.stroke()}
+ for(const rb of rightBalls){
+   if(rb.resolved)continue;
+   ctx.beginPath();ctx.arc(rb.x,rb.y,7,0,Math.PI*2);
+   ctx.fillStyle=rb.power==="weak"?"#4aa3ff":"#d37cff";ctx.fill();
+   ctx.strokeStyle="#fff";ctx.stroke();
+ }
+ for(const p of particles){ctx.globalAlpha=Math.max(0,p.life/30);ctx.fillStyle="#fff";ctx.fillRect(p.x,p.y,3,3)}
+ ctx.globalAlpha=1;
+
+ if(state.combo>=3){ctx.fillStyle="#fff";ctx.font="900 20px sans-serif";ctx.textAlign="right";ctx.fillText(`${state.combo} COMBO`,W-15,66);ctx.textAlign="left"}
+
+ if(state.effectState!=="通常"){
+   ctx.save();
+   ctx.globalAlpha=.92;
+   ctx.fillStyle="#171c28";
+   ctx.fillRect(W*.18,42,W*.64,38);
+   ctx.globalAlpha=1;
+   ctx.fillStyle=state.effectState.includes("復活")||state.effectState.includes("777")?"#ffcc00":
+                 state.effectState.includes("先バレ")||state.effectState.includes("赤")?"#ff453a":"#ffffff";
+   ctx.font="900 20px sans-serif";
+   ctx.textAlign="center";
+   ctx.fillText(state.effectState,W/2,68);
+   ctx.restore();
+   ctx.textAlign="left";
+ }
+
+ if(state.rightActive){
+   ctx.fillStyle="#fff";ctx.font="900 15px sans-serif";ctx.textAlign="right";
+   const effectiveOver=state.overWindowMs+(state.rushMode==="UPPER_LT"?30:(state.rushMode==="LT"?15:0));
+   ctx.fillText(`OVER猶予 ${effectiveOver}ms`,W-14,90);
+   const modeTxt=state.rushMode==="UPPER_LT"?"ULTIMATE LT":(state.rushMode==="LT"?"LT":"RUSH");
+   ctx.fillText(`${modeTxt} / 電サポ ${state.supportOpen?"OPEN":"CLOSE"} / R${state.roundIndex}`,W-14,110);
+   ctx.textAlign="left";
+ }
+
+ ctx.fillStyle="#cbd5e1";
+ ctx.font="bold 10px sans-serif";
+ ctx.fillText(`無駄玉 ${state.wastedBalls}  |  節約 ${state.savedBalls}  |  右ミス ${state.supportMisses}`,14,H-66);
+}
+
+function loop(t){step(t);draw();requestAnimationFrame(loop)}
+
+
+function setHandlePower(p){
+ p=Math.max(0.08,Math.min(1,p));
+ state.handlePower=p;
+ const deg=-120+p*240;
+ ui.handleKnob.style.transform=`translateX(-50%) rotate(${deg}deg)`;
+ ui.handlePct.textContent=Math.round(p*100)+"%";
+ ui.powerFill.style.height=Math.round(p*100)+"%";
+}
+
+function pointerToPower(ev){
+ const r=ui.handle.getBoundingClientRect();
+ const cx=r.left+r.width/2, cy=r.top+r.height/2;
+ const x=ev.clientX-cx, y=ev.clientY-cy;
+ let ang=Math.atan2(y,x)*180/Math.PI + 90;
+ if(ang>180) ang-=360;
+ ang=Math.max(-120,Math.min(120,ang));
+ return (ang+120)/240;
+}
+
+let handlePointer=null;
+ui.handle.addEventListener("pointerdown",ev=>{
+ ensureAudio();
+ handlePointer=ev.pointerId;
+ ui.handle.setPointerCapture(ev.pointerId);
+ setHandlePower(pointerToPower(ev));
+ state.handleFiring=true;
+ ui.mStop.textContent="発射停止";
+});
+ui.handle.addEventListener("pointermove",ev=>{
+ if(handlePointer===ev.pointerId) setHandlePower(pointerToPower(ev));
+});
+ui.handle.addEventListener("pointerup",ev=>{
+ if(handlePointer===ev.pointerId) handlePointer=null;
+});
+
+function mobileTechToggle(){
+ state.mobileTechOn=!state.mobileTechOn;
+ state.holdStop=state.mobileTechOn;
+ state.stopShoot=state.mobileTechOn;
+ state.oneTwo=state.mobileTechOn;
+ state.roundStop=state.mobileTechOn;
+ ui.mTech.textContent=state.mobileTechOn?"技術介入 ON":"技術介入 OFF";
+ ui.mTech.style.opacity=state.mobileTechOn?1:.5;
+ updateUI();
+}
+
+ui.mStop.onclick=()=>{
+ ensureAudio();
+ state.handleFiring=!state.handleFiring;
+ ui.mStop.textContent=state.handleFiring?"発射停止":"発射再開";
+};
+ui.mAuto.onclick=()=>{
+ ensureAudio();
+ state.auto=!state.auto;
+ ui.mAuto.textContent=state.auto?"AUTO ON":"AUTO";
+ updateUI();
+};
+ui.mWeak.onclick=()=>{ensureAudio();rightShot("weak");};
+ui.mStrong.onclick=()=>{ensureAudio();rightShot("strong");};
+ui.mTech.onclick=mobileTechToggle;
+ui.mBook.onclick=()=>{renderBook();ui.bookOverlay.style.display="flex";};
+
+ui.fire.onclick=()=>{ensureAudio();fire();};
+ui.auto.onclick=()=>{state.auto=!state.auto;updateUI()};
+ui.weak.onclick=()=>rightShot("weak");
+ui.strong.onclick=()=>rightShot("strong");
+ui.stopBtn.onclick=()=>{state.stopShoot=!state.stopShoot;updateUI()};
+ui.holdStopBtn.onclick=()=>{state.holdStop=!state.holdStop;updateUI()};
+ui.oneTwoBtn.onclick=()=>{state.oneTwo=!state.oneTwo;updateUI()};
+ui.roundStopBtn.onclick=()=>{state.roundStop=!state.roundStop;updateUI()};
+ui.bookBtn.onclick=()=>{renderBook();ui.bookOverlay.style.display="flex";};
+ui.bookClose.onclick=()=>{ui.bookOverlay.style.display="none";};
+ui.nail.oninput=()=>{state.nail=Number(ui.nail.value);buildBoard();updateUI()};
+ui.twist.oninput=()=>{state.twist=Number(ui.twist.value);updateUI()};
+canvas.addEventListener("pointerdown",()=>{ensureAudio();});
+addEventListener("keydown",e=>{
+ if(e.code==="Space"){e.preventDefault();fire()}
+ if(e.key==="z"||e.key==="Z")rightShot("weak");
+ if(e.key==="x"||e.key==="X")rightShot("strong");
+ if(e.key==="1")state.stopShoot=!state.stopShoot;
+ if(e.key==="2")state.holdStop=!state.holdStop;
+ if(e.key==="3")state.oneTwo=!state.oneTwo;
+ if(e.key==="4")state.roundStop=!state.roundStop;
+ updateUI();
+});
+
+resize();
+setLcdTheme("NORMAL");
+setHandlePower(.50);
+state.holdStop=true;state.stopShoot=true;state.oneTwo=true;state.roundStop=true;
+updateUI();
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>
